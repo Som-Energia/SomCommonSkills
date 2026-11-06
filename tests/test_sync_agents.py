@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 import tempfile
@@ -92,17 +93,12 @@ class SyncAgentsTests(unittest.TestCase):
         )
         (self.consumer / local_skills).mkdir(parents=True, exist_ok=True)
 
-    def run_sync(self, *arguments, expected=0):
+    def run_sync(self, *arguments, expected=0, use_toolkit=True):
+        command = [sys.executable, str(SCRIPT), "--repo", str(self.consumer)]
+        if use_toolkit:
+            command.extend(["--toolkit-dir", str(self.toolkit)])
         result = subprocess.run(
-            [
-                sys.executable,
-                str(SCRIPT),
-                "--repo",
-                str(self.consumer),
-                "--toolkit-dir",
-                str(self.toolkit),
-                *arguments,
-            ],
+            command + list(arguments),
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -197,6 +193,37 @@ class SyncAgentsTests(unittest.TestCase):
         self.run_sync(expected=2)
 
         self.assertFalse((self.consumer / "AGENTS.md").exists())
+
+    def test_manifest_revision_must_match_the_toolkit_checkout(self):
+        self.write_manifest()
+        manifest = yaml.safe_load(
+            (self.consumer / "agent-toolkit.yml").read_text(encoding="utf-8")
+        )
+        manifest["source"]["revision"] = "0" * 40
+        (self.consumer / "agent-toolkit.yml").write_text(
+            yaml.safe_dump(manifest, sort_keys=False), encoding="utf-8"
+        )
+
+        self.run_sync(expected=2)
+
+        self.assertFalse((self.consumer / "AGENTS.md").exists())
+
+    def test_fetches_the_pinned_commit_when_no_checkout_is_provided(self):
+        self.write_manifest()
+        manifest = yaml.safe_load(
+            (self.consumer / "agent-toolkit.yml").read_text(encoding="utf-8")
+        )
+        manifest["source"]["repository"] = self.toolkit.as_uri()
+        (self.consumer / "agent-toolkit.yml").write_text(
+            yaml.safe_dump(manifest, sort_keys=False), encoding="utf-8"
+        )
+
+        self.run_sync(use_toolkit=False)
+
+        state = json.loads(
+            (self.consumer / ".agent-toolkit-state.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(state["revision"], self.pin)
 
     def test_removing_a_managed_skill_preserves_unmanaged_files(self):
         self.write_manifest(common=["shared-one"])
