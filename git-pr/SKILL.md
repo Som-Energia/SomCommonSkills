@@ -1,145 +1,63 @@
 ---
 name: git-pr
 description: >
-  Crea Pull Requests seguint la plantilla de Som Energia.
-  Trigger: Quan necessites crear una Pull Request.
-metadata:
-  author: oriol
-  version: "1.0"
+  Prepare a Som Energia pull request with the shared description structure and
+  repository-specific checks. Use when completed work is ready for review.
 ---
 
-## When to Use
+# Preparar una pull request
 
-Utilitza aquesta skill quan:
-- Has acabat de treballar en una branca i vols crear una PR
-- Necessites seguir la plantilla de PR de Som Energia
+Segueix aquest flux compartit. Les regles de GitHub del repositori poden afegir
+requisits locals, però només una excepció documentada pot substituir la
+convenció organitzativa.
 
-## Plantilla de PR
+## Descripció compartida
+
+Escriu la descripció en català i omple totes aquestes seccions:
 
 ```markdown
 ## Objectiu
 
-
 ## Targeta on es demana o Incidència
-
 
 ## Comportament antic
 
-
 ## Comportament nou
-
 
 ## Comprovacions
 
-- [ ] Hi ha testos
+- [ ] Hi ha tests
 - [ ] Reiniciar serveis
 - [ ] Actualitzar mòdul
 - [ ] Script de migració
 - [ ] Modifica traduccions
 ```
 
-## Workflow
+Marca només les comprovacions que apliquen. Si el repositori té una plantilla
+versionada, utilitza-la com a font de veritat i conserva aquestes seccions que hi
+siguin aplicables.
 
-### Pas 1: Verificar estat
+## Flux
 
-```bash
-git status
-git log main..HEAD --oneline
-```
+1. Confirma el repositori, la branca actual i la branca base declarada a
+   `skill_config.git-pr.base_branch` (per defecte, `main`). Revisa `git status --short`,
+   `git diff --check`, el diff complet i els commits de la branca.
+2. Llegeix les instruccions locals, la plantilla i els workflows de CI. Comprova
+   si exigeixen issue, etiquetes, assignació, checks o un procediment específic.
+   No assumeixis requisits que no estiguin documentats.
+3. Executa les comprovacions aplicables i anota'n els resultats reals. No
+   declaris superades les que no s'han executat.
+4. Publica només la branca prevista i crea la pull request amb el títol clar i
+   les seccions anteriors. Utilitza un fitxer per al cos:
 
-### Pas 2: Fer push de la branca
+   ```bash
+   gh pr create --base main --title "<títol>" --body-file <fitxer>
+   ```
 
-```bash
-git push -u origin <branch_name>
-```
+   Afegeix les etiquetes locals que exigeixin els workflows del repositori.
+5. Verifica la base, el títol, el cos, les etiquetes i els checks de la PR.
 
-### Pas 3: Crear PR
-
-```bash
-gh pr create --title "<title>" --body "$(cat <<'EOF'
-## Objectiu
-
-<descripció de l'objectiu>
-
-## Targeta on es demana o Incidència
-
-<enllaç a la targeta/jira>
-
-## Comportament antic
-
-<com es comportava abans>
-
-## Comportament nou
-
-<com es comporta ara>
-
-## Comprovacions
-
-- [ ] Hi ha testos
-- [ ] Reiniciar serveis
-- [ ] Actualitzar mòdul
-- [ ] Script de migració
-- [ ] Modifica traduccions
-EOF
-)"
-```
-
-O alternativament:
-```bash
-gh pr create --title "<title>" --body-file /path/to/pr_template.md
-```
-
-## Exemples
-
-```bash
-# PR simple
-gh pr create \
-  --title "ADD_user_registration" \
-  --body "$(cat <<'EOF'
-## Objectiu
-
-Afegir formulari de registre d'usuaris amb validació de email.
-
-## Targeta on es demana o Incidència
-
-https://trello.com/c/abc123
-
-## Comportament antic
-
-No existia cap formulari de registre.
-
-## Comportament nou
-
-Nou formulari de registre accessible des de /register que valida email i contrasenya.
-
-## Comprovacions
-
-- [x] Hi ha testos
-- [ ] Reiniciar serveis
-- [x] Actualitzar mòdul
-- [ ] Script de migració
-- [x] Modifica traduccions
-EOF
-)"
-```
-
-## Regles
-
-1. **Idioma**: Català per a la descripció
-2. **Totes les seccions**: Omple-les totes, no deixis espais buits
-3. **Comprovacions**: Marca les que apliquen amb [x]
-4. **Títols**: Clar i descriptiu
-
-## Errors Comuns
-
-| Error | Causa | Solució |
-|-------|-------|----------|
-| No branch to push | Branca no existent | Crea la branca primer amb `git-branch` |
-| PR title too long | Títol massa llarg | Redueix a menys de 72 caràcters |
-| No description | Descripció buida | Omple la plantilla completa |
-
-## Integració amb SDD
-
-Aquesta skill s'utilitza a les fases:
-- `sdd-apply`: Per crear PR dels canvis implementats
-- `sdd-archive`: Per crear PR en tancar un canvi
+Una divergència de plantilla o de procés s'ha de documentar a les instruccions
+locals. Si canvia la skill sencera, el consumidor ha d'indicar a
+`agent-toolkit.yml` la substitució completa i el motiu; no fusiones fragments de
+dos `SKILL.md`.

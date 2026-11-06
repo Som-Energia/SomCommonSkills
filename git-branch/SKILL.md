@@ -1,104 +1,48 @@
 ---
 name: git-branch
 description: >
-  Crea branques de git seguint convencions de naming: IMP_, FIX_, MOD_, ADD_, etc.
-  Trigger: Quan necessites crear una branca nova per treballar.
-metadata:
-  author: oriol
-  version: "1.0"
+  Create a Som Energia work branch with the organization naming convention and
+  preserve unrelated changes. Use when starting work that needs a branch.
 ---
 
-## When to Use
+# Crear una branca de treball
 
-Utilitza aquesta skill quan:
-- Començar a treballar en una nova feature
-- Corregir un bug
-- Fer qualsevol canvi que requerixi una branca separada
+Aquest és el flux per defecte de Som Energia. Només segueix una excepció local
+si el repositori la declara explícitament a les instruccions locals i n'explica
+la necessitat.
 
-## Convencions de Naming
+## Convenció compartida
 
-El format és: `<type>_<description>`
+- Branca base: `main`, tret que `skill_config.git-branch.base_branch` declari
+  una excepció local amb `reason` no buit.
+- Format: `<PREFIX>_<descripcio>`.
+- Prefixos: `ADD_`, `IMP_`, `FIX_`, `MOD_`, `REF_`, `TEST_`, `DOCS_` i `CI_`.
+- Descripció en anglès, minúscules, de 2 o 3 paraules, separades amb `_`, fins
+  a 50 caràcters.
+- Exemple: `IMP_payment_validation`.
 
-### Tipus de Branca
+## Flux
 
-| Prefix | Tipus | Descripció |
-|--------|-------|------------|
-| IMP_ | Improvement | Millora d funcionalitat existent |
-| FIX_ | Bug Fix | Correcció de bug |
-| MOD_ | Modification | Canvi de comportament |
-| ADD_ | Addition | Afegir nova funcionalitat |
-| REF_ | Refactor | Refactorització sense canvi funcional |
-| TEST_ | Test | Afegir o corregir tests |
-| DOCS_ | Documentation | Canvis de documentació |
-| CI_ | CI/CD | Canvis a pipelines |
+1. Identifica el repositori amb `git rev-parse --show-toplevel` i revisa
+   `git status --short --branch`.
+2. Preserva els canvis locals: no els descartis, desis amb `stash` ni incloguis
+   a la branca nova sense autorització.
+3. Llegeix l'`AGENTS.md` i `agent-toolkit.yml`. Aplica una excepció local només
+   si el manifest declara el valor i un motiu no buit.
+4. Comprova que el nom de branca no existeix i actualitza la referència remota:
 
-### Regles
+   ```bash
+   git fetch origin
+   ```
 
-1. **Descripció**: 2-3 paraules en anglès, lowercase
-2. **Separador**: Guió baix (_) entre tipus i descripció
-3. **Espais**: Utilitzar guions (-) dins la descripció si cal
-4. **Longitud**: Màxim 50 caràcters
+5. Crea la branca directament des de la base remota, sense canviar la branca
+   actual ni arriscar-ne els canvis locals:
 
-## Workflow
+   ```bash
+   git switch -c <PREFIX>_<descripcio> origin/main
+   ```
 
-### Pas 1: Actualitzar main/master
+6. Verifica `git status --short --branch` abans de començar a editar.
 
-```bash
-git fetch origin
-git pull origin main
-```
-
-### Pas 2: Crear branca nova
-
-```bash
-git checkout -b <type>_<description>
-```
-
-### Pas 3: Fer canvis i commit
-
-(Utilitza la skill `git-commit`)
-
-### Pas 4: Fer push
-
-```bash
-git push -u origin <branch_name>
-```
-
-## Exemples
-
-```bash
-# Nova funcionalitat
-git checkout -b ADD_user_registration
-
-# Millora
-git checkout -b IMP_payment_validation
-
-# Bug fix
-git checkout -b FIX_invoice_total_calculation
-
-# Canvi de comportament
-git checkout -b MOD_renewal_process
-
-# Refactor
-git checkout -b REF_extract_partner_service
-
-# Tests
-git checkout -b TEST_contract_validation
-
-# Documentació
-git checkout -b DOCS_api_reference
-```
-
-## Errors Comuns
-
-| Error | Causa | Solució |
-|-------|-------|----------|
-| Branch already exists | Branca ja existent | Canvia el nom o elimina la branca existent |
-| Invalid branch name | Caràcters invàlids | Utilitza només lletres, números, guions i guions baixos |
-| Not on main | No estàs a main | `git checkout main` abans de crear branca |
-
-## Integració amb SDD
-
-Aquesta skill s'utilitza a les fases:
-- `sdd-propose`: Per crear branca des del proposal
-- `sdd-apply`: Per crear branca de treball
+Si l'`AGENTS.md` local exigeix sincronitzar workspaces, triar un worktree o
+utilitzar un wrapper abans de crear la branca, segueix primer aquell procediment.
