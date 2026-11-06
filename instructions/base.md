@@ -5,8 +5,8 @@ abans de modificar fitxers. Preserva la feina aliena, limita els canvis a
 l'abast demanat i informa només de les comprovacions que hagis executat.
 
 Les instruccions específiques del repositori s'afegeixen després d'aquest text.
-Segueix les excepcions locals explícites d'aquell repositori; no canvien les
-regles compartides dels altres.
+Les convencions compartides són la norma organitzativa; aplica excepcions locals
+només quan estiguin justificades i documentades per a aquell repositori.
 
 Les instruccions i skills generades es versionen a cada consumidor. Les tasques
 habituals dels agents han de funcionar amb aquests fitxers sense accedir a

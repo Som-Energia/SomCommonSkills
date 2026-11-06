@@ -1,26 +1,48 @@
 ---
 name: git-branch
 description: >
-  Prepara una branca de Git acotada seguint les convencions del repositori.
-  Utilitza-la quan comencis una feina que necessiti una branca pròpia.
+  Create a Som Energia work branch with the organization naming convention and
+  preserve unrelated changes. Use when starting work that needs a branch.
 ---
 
-# Flux de treball de branques
+# Crear una branca de treball
 
-Utilitza aquesta skill abans de començar codi, documentació o CI que requereixi
-una branca separada.
+Aquest és el flux per defecte de Som Energia. Només segueix una excepció local
+si el repositori la declara explícitament a les instruccions locals i n'explica
+la necessitat.
+
+## Convenció compartida
+
+- Branca base: `main`, tret que `skill_config.git-branch.base_branch` declari
+  una excepció local amb `reason` no buit.
+- Format: `<PREFIX>_<descripcio>`.
+- Prefixos: `ADD_`, `IMP_`, `FIX_`, `MOD_`, `REF_`, `TEST_`, `DOCS_` i `CI_`.
+- Descripció en anglès, minúscules, de 2 o 3 paraules, separades amb `_`, fins
+  a 50 caràcters.
+- Exemple: `IMP_invoice_payment_type_views`.
+
+## Flux
 
 1. Identifica el repositori amb `git rev-parse --show-toplevel` i revisa
    `git status --short --branch`.
-2. Preserva els canvis existents. No els desis amb `stash`, descartis ni
-   incloguis sense indicacions explícites de qui n'és responsable.
-3. Llegeix l'`AGENTS.md` del repositori i segueix-ne el format de branca i la
-   branca base. Si la convenció no està documentada, revisa branques i commits
-   recents; pregunta si la base correcta continua sent ambigua.
-4. Comprova que el nom proposat no existeix i crea la branca des de la base
-   documentada. No actualitzis ni canviïs la branca base si això pot afectar
-   canvis locals aliens.
-5. Confirma la branca resultant i l'estat del directori de treball.
+2. Preserva els canvis locals: no els descartis, desis amb `stash` ni incloguis
+   a la branca nova sense autorització.
+3. Llegeix l'`AGENTS.md` i `agent-toolkit.yml`. Aplica una excepció local només
+   si el manifest declara el valor i un motiu no buit.
+4. Comprova que el nom de branca no existeix i actualitza la referència remota:
 
-No assumeixis que altres repositoris del mateix workspace comparteixen prefixes,
-branca per defecte o flux de sincronització.
+   ```bash
+   git fetch origin
+   ```
+
+5. Crea la branca directament des de la base remota, sense canviar la branca
+   actual ni arriscar-ne els canvis locals:
+
+   ```bash
+   git switch -c <PREFIX>_<descripcio> origin/main
+   ```
+
+6. Verifica `git status --short --branch` abans de començar a editar.
+
+Si l'`AGENTS.md` local exigeix sincronitzar workspaces, triar un worktree o
+utilitzar un wrapper abans de crear la branca, segueix primer aquell procediment.

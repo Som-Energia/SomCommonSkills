@@ -29,6 +29,14 @@ MANIFEST_PATH = "agent-toolkit.yml"
 SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]*\]\(([^)]+)\)")
+SKILL_CONFIG_DEFAULTS = {
+    "git-branch": {"base_branch": "main"},
+    "git-commit": {"format": "emoji-description"},
+    "git-pr": {"base_branch": "main"},
+}
+SKILL_CONFIG_VALUES = {
+    ("git-commit", "format"): {"emoji-description", "emoji-type-description"},
+}
 
 
 class ToolkitError(Exception):
@@ -238,6 +246,48 @@ def validate_instruction_references(repository_root, content):
             raise ToolkitError("missing instruction reference: {}".format(target))
 
 
+def validate_skill_config(skill_config):
+    for name, settings in skill_config.items():
+        if not SKILL_NAME_RE.fullmatch(name):
+            raise ToolkitError("invalid skill_config name: {!r}".format(name))
+        defaults = SKILL_CONFIG_DEFAULTS.get(name)
+        if defaults is None:
+            raise ToolkitError("skill_config has no documented settings for {!r}".format(name))
+        allowed_keys = set(defaults) | {"reason"}
+        if not isinstance(settings, dict) or set(settings) - allowed_keys:
+            raise ToolkitError(
+                "skill_config.{} supports only {} and reason".format(
+                    name, ", ".join(sorted(defaults))
+                )
+            )
+        configured_values = set(settings) - {"reason"}
+        if not configured_values:
+            raise ToolkitError("skill_config.{} must set a documented value".format(name))
+        deviations = []
+        for key in configured_values:
+            value = settings[key]
+            if not isinstance(value, str) or not value.strip():
+                raise ToolkitError(
+                    "skill_config.{}.{} must be a non-empty string".format(name, key)
+                )
+            choices = SKILL_CONFIG_VALUES.get((name, key))
+            if choices and value not in choices:
+                raise ToolkitError(
+                    "skill_config.{}.{} must be one of {}".format(
+                        name, key, ", ".join(sorted(choices))
+                    )
+                )
+            if value != defaults[key]:
+                deviations.append(key)
+        reason = settings.get("reason")
+        if deviations and (not isinstance(reason, str) or not reason.strip()):
+            raise ToolkitError(
+                "non-default skill_config.{} values require a non-empty reason".format(name)
+            )
+        if reason is not None and (not isinstance(reason, str) or not reason.strip()):
+            raise ToolkitError("skill_config.{}.reason must be non-empty when set".format(name))
+
+
 def discover_skills(root):
     discovered = {}
     for skill_file in sorted(root.glob("*/SKILL.md")):
@@ -257,7 +307,8 @@ def load_manifest(repository_root):
     manifest_path = repository_root / MANIFEST_PATH
     manifest = load_yaml(manifest_path)
     allowed_keys = {
-        "source", "local_instructions", "local_skills", "common_skills", "overrides"
+        "source", "local_instructions", "local_skills", "common_skills",
+        "overrides", "skill_config",
     }
     unknown = set(manifest) - allowed_keys
     if unknown:
@@ -268,7 +319,8 @@ def load_manifest(repository_root):
     local_instructions_value = manifest.get("local_instructions")
     local_skills_value = manifest.get("local_skills")
     common_skills = manifest.get("common_skills")
-    overrides = manifest.get("overrides", {})
+    override_specs = manifest.get("overrides", {})
+    skill_config = manifest.get("skill_config", {})
     if not isinstance(common_skills, list) or any(not isinstance(item, str) for item in common_skills):
         raise ToolkitError("common_skills must be a list of skill names")
     if len(common_skills) != len(set(common_skills)):
@@ -276,13 +328,15 @@ def load_manifest(repository_root):
     for name in common_skills:
         if not SKILL_NAME_RE.fullmatch(name):
             raise ToolkitError("invalid common skill name: {!r}".format(name))
-    if not isinstance(overrides, dict) or any(
-        not isinstance(name, str) or not isinstance(path, str)
-        for name, path in overrides.items()
-    ):
-        raise ToolkitError("overrides must map common skill names to local skill directories")
-    if set(overrides) - set(common_skills):
+    if not isinstance(override_specs, dict):
+        raise ToolkitError("overrides must map common skill names to local replacement details")
+    if set(override_specs) - set(common_skills):
         raise ToolkitError("overrides may only replace skills listed in common_skills")
+    if not isinstance(skill_config, dict):
+        raise ToolkitError("skill_config must map skill names to documented local settings")
+    if set(skill_config) - set(common_skills):
+        raise ToolkitError("skill_config may only configure selected common skills")
+
     local_instructions = confined_path(
         repository_root, local_instructions_value, "local_instructions"
     )
@@ -291,6 +345,34 @@ def load_manifest(repository_root):
         raise ToolkitError("local instructions file does not exist: {}".format(local_instructions))
     if not local_skills.is_dir():
         raise ToolkitError("local skills directory does not exist: {}".format(local_skills))
+
+    overrides = {}
+    local_skills_root = local_skills.resolve()
+    for name, specification in override_specs.items():
+        if not SKILL_NAME_RE.fullmatch(name):
+            raise ToolkitError("invalid override skill name: {!r}".format(name))
+        if not isinstance(specification, dict) or set(specification) != {"path", "reason"}:
+            raise ToolkitError(
+                "override {!r} must declare exactly path and reason".format(name)
+            )
+        reason = specification.get("reason")
+        if not isinstance(reason, str) or not reason.strip():
+            raise ToolkitError("override {!r} requires a non-empty reason".format(name))
+        override_path = confined_path(
+            repository_root,
+            specification.get("path"),
+            "overrides.{}.path".format(name),
+        )
+        try:
+            override_path.resolve().relative_to(local_skills_root)
+        except ValueError as error:
+            raise ToolkitError(
+                "override {!r} must be inside local_skills".format(name)
+            ) from error
+        overrides[name] = override_path
+
+    validate_skill_config(skill_config)
+
     skill_root_value = source.get("skill_root", ".")
     skill_root = confined_path(
         Path("/"), skill_root_value, "source.skill_root", allow_dot=True
@@ -339,6 +421,11 @@ def compose_files(repository_root, toolkit_root, loaded_manifest):
                 ", ".join(sorted(unknown_overrides))
             )
         )
+    for name, override_path in overrides.items():
+        if override_path.resolve() != local[name].resolve():
+            raise ToolkitError(
+                "override {!r} path does not contain the skill with matching name".format(name)
+            )
     effective = {}
     for name in common_skills:
         effective[name] = local[name] if name in overrides else common[name]

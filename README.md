@@ -54,12 +54,51 @@ common_skills:
   - git-branch
   - git-commit
   - git-pr
-overrides: {}
+skill_config: {}
+overrides:
+  git-pr:
+    path: .agents/local-skills/git-pr
+    reason: "Aquest repositori té requisits addicionals de PR als workflows de GitHub."
 ```
 
-`overrides` associa el nom d'una skill comuna seleccionada amb el directori
-d'una skill local completa. Substitueix tota la skill, inclosos els recursos;
-el sincronitzador no fusiona dos `SKILL.md`. Les altres skills de `local_skills`
+### Convencions organitzatives per defecte
+
+| Àmbit | Norma compartida |
+|---|---|
+| Branques | `main`; format `<PREFIX>_<descripcio>`; prefixos `ADD_`, `IMP_`, `FIX_`, `MOD_`, `REF_`, `TEST_`, `DOCS_`, `CI_`; descripció en anglès, minúscules, 2–3 paraules, `_`, màxim 50 caràcters |
+| Commits | `<emoji> <descripció>`; anglès, imperatiu, màxim 72 caràcters; no afegir prefix textual `feat:`/`fix:`; emoji segons `gitmoji.dev` |
+| Pull requests | Descripció en català amb Objectiu, Targeta/incidència, Comportament antic, Comportament nou i Comprovacions |
+
+Les convencions compartides són el **valor per defecte de l'organització**. Les
+skills n'expliquen el procediment concret; les instruccions locals només afegeixen
+context o excepcions justificades.
+
+`skill_config` és la interfície documentada per a adaptacions petites:
+
+| Skill | Opció | Valor per defecte | Valors documentats |
+|---|---|---|---|
+| `git-branch` | `base_branch` | `main` | Nom d'una branca base |
+| `git-commit` | `format` | `emoji-description` | `emoji-description`, `emoji-type-description` |
+| `git-pr` | `base_branch` | `main` | Nom d'una branca base |
+
+Exemple d'una excepció de base per al repositori:
+
+```yaml
+skill_config:
+  git-branch:
+    base_branch: developer
+    reason: "Aquest repositori integra canvis a la branca developer."
+```
+
+Qualsevol valor diferent del valor per defecte necessita un `reason` no buit.
+Les skills han de llegir i aplicar les opcions declarades; les claus o opcions no
+documentades provoquen un error, no s'ignoren.
+
+`overrides` és per a divergències de flux que requereixen substituir una skill
+sencera. Cada entrada associa un nom seleccionat amb un directori local i un
+motiu no buit. El directori ha de ser dins de `local_skills`. La substitució
+reemplaça tot el contingut de la skill, inclosos els recursos; el
+sincronitzador no fusiona dos `SKILL.md`. Les altres skills de `local_skills`
 s'afegeixen. Cada skill efectiva ha de tenir un `name` únic al frontmatter; els
 duplicats sense resoldre aturen la sincronització.
 
@@ -133,13 +172,14 @@ valor anterior de `source.revision`, torna a sincronitzar i revisa el diff.
 ## Criteris per compartir contingut
 
 - Comparteix només fluxos verificats en més d'un repositori.
-- Mantén breus les instruccions base; posa els procediments condicionals en
-  skills.
-- Mantén locals les regles de runtime, framework, credencials, PR i branques si
-  no hi ha un contracte comú verificat.
-- Prefereix una substitució local quan una skill sencera difereixi. Les
-  adaptacions petites han d'anar a l'`AGENTS.md` local, tret que una skill
-  documenti una interfície de configuració estable.
+- Codifica les convencions organitzatives a les skills compartides amb exemples
+  i comandes concretes; l'`AGENTS.md` base es manté breu.
+- Mantén locals els detalls de runtime i framework. Una convenció Git diferent
+  necessita una justificació local explícita.
+- Utilitza `skill_config` només per a opcions que una skill documenti. Per a un
+  flux materialment diferent, utilitza una substitució completa amb motiu.
+- Revisa les excepcions periòdicament: una diferència que es repeteix en diversos
+  repositoris pot indicar que cal actualitzar la norma compartida.
 - No incloguis credencials, rutes personals ni dades privades a les fonts
   compartides.
 

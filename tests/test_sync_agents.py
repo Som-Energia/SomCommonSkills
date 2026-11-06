@@ -29,6 +29,8 @@ class SyncAgentsTests(unittest.TestCase):
             "Shared skill content.\n",
             resource="references/shared.txt",
         )
+        self.write_skill(self.toolkit, "git-commit", "Shared commit workflow.\n")
+        self.write_skill(self.toolkit, "git-branch", "Shared branch workflow.\n")
         self.pin = self.initialize_toolkit()
 
     def tearDown(self):
@@ -73,7 +75,13 @@ class SyncAgentsTests(unittest.TestCase):
             ["git", "-C", str(self.toolkit), "rev-parse", "HEAD"], text=True
         ).strip()
 
-    def write_manifest(self, common=None, local_skills=".agents/local-skills", overrides=None):
+    def write_manifest(
+        self,
+        common=None,
+        local_skills=".agents/local-skills",
+        overrides=None,
+        skill_config=None,
+    ):
         manifest = {
             "source": {
                 "repository": "https://example.org/toolkit.git",
@@ -84,6 +92,7 @@ class SyncAgentsTests(unittest.TestCase):
             "local_skills": local_skills,
             "common_skills": ["shared-one"] if common is None else common,
             "overrides": overrides or {},
+            "skill_config": skill_config or {},
         }
         (self.consumer / "agent-toolkit.yml").write_text(
             yaml.safe_dump(manifest, sort_keys=False), encoding="utf-8"
@@ -131,7 +140,14 @@ class SyncAgentsTests(unittest.TestCase):
             "Only replacement content.\n",
             name="shared-one",
         )
-        self.write_manifest(overrides={"shared-one": ".agents/local-skills/replacement"})
+        self.write_manifest(
+            overrides={
+                "shared-one": {
+                    "path": ".agents/local-skills/replacement",
+                    "reason": "The consumer requires a different complete workflow.",
+                }
+            }
+        )
 
         self.run_sync()
 
@@ -142,6 +158,86 @@ class SyncAgentsTests(unittest.TestCase):
         self.assertNotIn("Shared skill content.", generated)
         self.assertFalse((self.consumer / ".agents/skills/shared-one/references/shared.txt").exists())
         self.assertTrue(local.exists())
+
+    def test_full_skill_overrides_require_a_reason(self):
+        self.write_skill(
+            self.consumer / ".agents/local-skills",
+            "replacement",
+            "Only replacement content.\n",
+            name="shared-one",
+        )
+        self.write_manifest(
+            overrides={
+                "shared-one": {"path": ".agents/local-skills/replacement"}
+            }
+        )
+
+        result = self.run_sync(expected=2)
+
+        self.assertIn("reason", result.stderr.lower())
+        self.assertFalse((self.consumer / "AGENTS.md").exists())
+
+    def test_override_path_must_be_within_local_skills_and_match_name(self):
+        self.write_skill(
+            self.consumer / ".agents/local-skills",
+            "replacement",
+            "Only replacement content.\n",
+            name="shared-one",
+        )
+        self.write_manifest(
+            overrides={
+                "shared-one": {
+                    "path": ".agents/local-skills/not-the-replacement",
+                    "reason": "Test invalid target mapping.",
+                }
+            }
+        )
+
+        result = self.run_sync(expected=2)
+
+        self.assertIn("does not contain", result.stderr.lower())
+        self.assertFalse((self.consumer / "AGENTS.md").exists())
+
+    def test_documented_commit_format_exception_is_accepted(self):
+        self.write_manifest(
+            common=["shared-one", "git-commit"],
+            skill_config={
+                "git-commit": {
+                    "format": "emoji-type-description",
+                    "reason": "The consumer retains its established commit convention.",
+                }
+            }
+        )
+
+        self.run_sync()
+
+        self.assertTrue((self.consumer / "AGENTS.md").is_file())
+
+    def test_documented_branch_base_exception_is_accepted(self):
+        self.write_manifest(
+            common=["shared-one", "git-branch"],
+            skill_config={
+                "git-branch": {
+                    "base_branch": "developer",
+                    "reason": "This repository targets a maintained release branch.",
+                }
+            }
+        )
+
+        self.run_sync()
+
+        self.assertTrue((self.consumer / "AGENTS.md").is_file())
+
+    def test_commit_format_exception_without_reason_is_rejected(self):
+        self.write_manifest(
+            common=["shared-one", "git-commit"],
+            skill_config={"git-commit": {"format": "emoji-type-description"}}
+        )
+
+        result = self.run_sync(expected=2)
+
+        self.assertIn("reason", result.stderr.lower())
+        self.assertFalse((self.consumer / "AGENTS.md").exists())
 
     def test_manual_edits_are_not_overwritten(self):
         self.write_manifest()
