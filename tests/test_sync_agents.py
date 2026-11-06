@@ -198,6 +198,28 @@ class SyncAgentsTests(unittest.TestCase):
         self.assertIn("does not contain", result.stderr.lower())
         self.assertFalse((self.consumer / "AGENTS.md").exists())
 
+    def test_full_override_cannot_also_use_skill_config(self):
+        self.write_skill(
+            self.consumer / ".agents/local-skills",
+            "replacement",
+            "Only replacement content.\n",
+            name="shared-one",
+        )
+        self.write_manifest(
+            overrides={
+                "shared-one": {
+                    "path": ".agents/local-skills/replacement",
+                    "reason": "Use the complete local workflow.",
+                }
+            },
+            skill_config={"shared-one": {"unknown": "ignored"}},
+        )
+
+        result = self.run_sync(expected=2)
+
+        self.assertIn("fully overridden", result.stderr.lower())
+        self.assertFalse((self.consumer / "AGENTS.md").exists())
+
     def test_documented_commit_format_exception_is_accepted(self):
         self.write_manifest(
             common=["shared-one", "git-commit"],

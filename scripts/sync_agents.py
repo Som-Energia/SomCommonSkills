@@ -336,6 +336,13 @@ def load_manifest(repository_root):
         raise ToolkitError("skill_config must map skill names to documented local settings")
     if set(skill_config) - set(common_skills):
         raise ToolkitError("skill_config may only configure selected common skills")
+    overlapping_settings = set(skill_config).intersection(override_specs)
+    if overlapping_settings:
+        raise ToolkitError(
+            "a fully overridden skill cannot also have skill_config: {}".format(
+                ", ".join(sorted(overlapping_settings))
+            )
+        )
 
     local_instructions = confined_path(
         repository_root, local_instructions_value, "local_instructions"

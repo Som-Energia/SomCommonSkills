@@ -11,6 +11,8 @@ a `.agents/skills/<skill>/SKILL.md`. Les metadades segueixen el format Agent
 Skills (`name` i `description` al frontmatter). Altres agents poden reutilitzar
 les mateixes fonts Markdown amb els seus adaptadors.
 
+El repositori central es diu `SomCommonSkills` (abans `opencode-skills`).
+
 Referències oficials consultades:
 
 - [Codex: AGENTS.md](https://developers.openai.com/codex/agent-configuration/agents-md)
@@ -45,7 +47,7 @@ fixa la font independentment de la resta de repositoris. Exemple:
 
 ```yaml
 source:
-  repository: https://github.com/Som-Energia/opencode-skills.git
+  repository: https://github.com/Som-Energia/SomCommonSkills.git
   revision: 0123456789abcdef0123456789abcdef01234567
   skill_root: .
 local_instructions: AGENTS.local.md
@@ -108,7 +110,7 @@ Executa el sincronitzador del checkout de la font sobre el consumidor:
 python3 -m pip install -r requirements-toolkit.txt
 python3 scripts/sync_agents.py \
   --repo /ruta/al/consumidor \
-  --toolkit-dir /ruta/al/opencode-skills-net-i-fixat
+  --toolkit-dir /ruta/al/SomCommonSkills-net-i-fixat
 ```
 
 Per a la primera adopció, preserva l'`AGENTS.md` antic com a fitxer local
@@ -118,7 +120,7 @@ substitució de sortides existents encara no gestionades:
 
 ```bash
 python3 scripts/sync_agents.py --repo /ruta/al/consumidor \
-  --toolkit-dir /ruta/al/opencode-skills-net-i-fixat --adopt
+  --toolkit-dir /ruta/al/SomCommonSkills-net-i-fixat --adopt
 ```
 
 L'eina comprova que el checkout del toolkit és net i coincideix exactament amb
@@ -189,7 +191,7 @@ Per a una instal·lació personal compatible amb OpenCode, Pi i Codex:
 
 ```bash
 mkdir -p ~/.agents/skills
-git clone https://github.com/Som-Energia/opencode-skills.git \
+git clone https://github.com/Som-Energia/SomCommonSkills.git \
   ~/.cache/somenergia-agent-skills
 cp -R ~/.cache/somenergia-agent-skills/git-* ~/.agents/skills/
 ```

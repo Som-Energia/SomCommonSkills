@@ -19,7 +19,7 @@ la necessitat.
 - Prefixos: `ADD_`, `IMP_`, `FIX_`, `MOD_`, `REF_`, `TEST_`, `DOCS_` i `CI_`.
 - Descripció en anglès, minúscules, de 2 o 3 paraules, separades amb `_`, fins
   a 50 caràcters.
-- Exemple: `IMP_invoice_payment_type_views`.
+- Exemple: `IMP_payment_validation`.
 
 ## Flux
 
