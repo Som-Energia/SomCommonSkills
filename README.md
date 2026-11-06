@@ -11,6 +11,17 @@ a `.agents/skills/<skill>/SKILL.md`. Les metadades segueixen el format Agent
 Skills (`name` i `description` al frontmatter). Altres agents poden reutilitzar
 les mateixes fonts Markdown amb els seus adaptadors.
 
+Referències oficials consultades:
+
+- [Codex: AGENTS.md](https://developers.openai.com/codex/agent-configuration/agents-md)
+  documenta la càrrega jeràrquica d'instruccions de projecte.
+- [Codex: Skills](https://developers.openai.com/codex/build-skills) documenta
+  `SKILL.md`, el frontmatter obligatori i la descoberta a `.agents/skills`.
+- [OpenCode: Agent Skills](https://opencode.ai/docs/skills/) documenta
+  `.agents/skills/<name>/SKILL.md` i `name`/`description`.
+- [Pi: Skills](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/skills.md)
+  documenta el format Agent Skills i la ubicació de projecte `.agents/skills`.
+
 ## Estructura de les fonts
 
 Es conserven les carpetes de skills actuals a l'arrel per no trencar les
