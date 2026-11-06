@@ -150,9 +150,11 @@ Per a una instal·lació personal compatible amb OpenCode, Pi i Codex:
 ```bash
 mkdir -p ~/.agents/skills
 git clone https://github.com/Som-Energia/opencode-skills.git \
-  ~/.agents/skills/somenergia
+  ~/.cache/somenergia-agent-skills
+cp -R ~/.cache/somenergia-agent-skills/git-* ~/.agents/skills/
 ```
 
-Aquest repositori serveix per instal·lar skills reutilitzables. Per a
-instruccions de projecte i actualitzacions fixades, segueix el flux de manifest
-del consumidor.
+La còpia posa cada skill directament a l'arrel de descoberta compartida pels
+tres agents. Repeteix-la després d'actualitzar el clon per actualitzar les
+skills personals. Per a instruccions de projecte i versions fixades, segueix el
+flux de manifest del consumidor.
